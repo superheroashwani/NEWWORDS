@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
 import 'package:provider/provider.dart';
+import 'package:translator/translator.dart';
 
 void main() {
   runApp(MyApp());
@@ -18,7 +19,9 @@ class MyApp extends StatelessWidget {
         title: 'New Word',
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 218, 34, 255)),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color.fromARGB(255, 218, 34, 255),
+          ),
         ),
         home: MyHomePage(),
       ),
@@ -28,11 +31,19 @@ class MyApp extends StatelessWidget {
 
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
-  void getNext() {
+  String translation = "translating...";
+
+  final translator = GoogleTranslator();
+
+  void getNext() async {
     current = WordPair.random();
+    translation = "translating..";
     notifyListeners();
+    await translateWord();
   }
 
+  
+  
   var favorites = <WordPair>[];
 
   void toggleFavorite() {
@@ -40,6 +51,20 @@ class MyAppState extends ChangeNotifier {
       favorites.remove(current);
     } else {
       favorites.add(current);
+    }
+    notifyListeners();
+  }
+
+  Future<void> translateWord() async {
+    try {
+      var translated = await translator.translate(
+        current.asLowerCase,
+        from: 'en',
+        to: 'hi',
+      );
+      translation = translated.text;
+    } catch (e) {
+      translation = "Translation Failed";
     }
     notifyListeners();
   }
@@ -90,7 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (value) {
-                     setState(() {
+                    setState(() {
                       selectedIndex = value;
                     });
                   },
@@ -105,7 +130,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         );
-      }
+      },
     );
   }
 }
@@ -129,10 +154,20 @@ class GeneratorPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('''Enhance your vocabulary with me. 
-          Use me Everyday.''', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),), 
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(
+              '''Enhance your vocabulary with me. Use me Everyday.''',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
           SizedBox(height: 10),
           BigCard(pair: pair),
+          SizedBox(height: 10),
+          Text(
+            "Meaning in Hindi: ${appState.translation}",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+          ),
           SizedBox(height: 10),
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -185,24 +220,24 @@ class BigCard extends StatelessWidget {
   }
 }
 
-class FavoritesPage extends StatelessWidget{
+class FavoritesPage extends StatelessWidget {
   const FavoritesPage({super.key});
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     var appState = context.watch<MyAppState>();
     if (appState.favorites.isEmpty) {
-      return Center(
-        child: Text('No favorites yet.'),
-      );
+      return Center(child: Text('No favorites yet.'));
     }
 
     return ListView(
       children: [
         Padding(
           padding: const EdgeInsets.all(20),
-          child: Text('You have '
-              '${appState.favorites.length} favorites:'),
+          child: Text(
+            'You have '
+            '${appState.favorites.length} favorites:',
+          ),
         ),
         for (var pair in appState.favorites)
           ListTile(
@@ -212,4 +247,4 @@ class FavoritesPage extends StatelessWidget{
       ],
     );
   }
-  }
+}
